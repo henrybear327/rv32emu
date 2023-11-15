@@ -198,6 +198,7 @@ int main(int argc, char **args)
     elf_t *elf = elf_new();
     if (!elf_open(elf, opt_prog_name)) {
         fprintf(stderr, "Unable to open ELF file '%s'\n", opt_prog_name);
+        elf_delete(elf);
         return 1;
     }
 

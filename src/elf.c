@@ -357,6 +357,10 @@ bool elf_open(elf_t *e, const char *input)
 #endif /* HAVE_MMAP */
 
     /* point to the header */
+    if (sizeof(struct Elf32_Ehdr) > e->raw_size) {
+        release(e);
+        return false;
+    }
     e->hdr = (const struct Elf32_Ehdr *) e->raw_data;
 
     /* check it is a valid ELF file */

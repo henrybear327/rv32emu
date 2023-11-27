@@ -55,6 +55,20 @@ enum {
     SHT_HIUSER = 0xffffffff, /* End of application-specific */
 };
 
+/* TBD */
+enum {
+    ET_NONE		= 0,
+    ET_REL		= 1,
+    ET_EXEC		= 2,
+    ET_DYN		= 3,
+    ET_CORE		= 4,
+    ET_NUM		= 5,
+    ET_LOOS		= 0xfe00,
+    ET_HIOS		= 0xfeff,
+    ET_LOPROC	= 0xff00,
+    ET_HIPROC	= 0xffff,
+};
+
 /*
  * Section Attribute Flags
  */

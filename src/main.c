@@ -149,17 +149,18 @@ static bool parse_args(int argc, char **args)
         char *optarg = args[idx + 1];
 
         switch (opt) {
-        case 's':  /* binary string */
+        case 's': /* binary string */
             opt_elf_string = true;
             elf_string = (uint8_t *) optarg;
             emu_argc++;
             break;
-        case 'l':  /* binary string len */
+        case 'l': /* binary string len */
             opt_elf_strlen = true;
             elf_strlen = atoi(optarg);
             emu_argc++;
             break;
-        case 'k':  /* max execution cycle (since some program won't terminate, e.g. while(1) {} */
+        case 'k': /* max execution cycle (since some program won't terminate,
+                     e.g. while(1) {} */
             opt_max_execution_cycles = true;
             max_execution_cycles = atoi(optarg);
             emu_argc++;

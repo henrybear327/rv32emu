@@ -241,6 +241,185 @@ bool elf_get_data_section_range(elf_t *e, uint32_t *start, uint32_t *end)
     return true;
 }
 
+/* ported from librisvc */
+
+// template <int W>
+// RISCV_INTERNAL void Memory<W>::binary_load_ph(const MachineOptions<W>
+// &options,
+//                                               const Phdr *hdr)
+// {
+//     const auto *src = m_binary.data() + hdr->p_offset;
+//     const size_t len = hdr->p_filesz;
+//     if (m_binary.size() <= hdr->p_offset ||
+//         hdr->p_offset + len < hdr->p_offset) {
+//         throw MachineException(INVALID_PROGRAM,
+//                                "Bogus ELF program segment offset");
+//     }
+//     if (m_binary.size() < hdr->p_offset + len) {
+//         throw MachineException(INVALID_PROGRAM,
+//                                "Not enough room for ELF program segment");
+//     }
+//     if (hdr->p_vaddr + len < hdr->p_vaddr) {
+//         throw MachineException(INVALID_PROGRAM,
+//                                "Bogus ELF segment virtual base");
+//     }
+
+//     if (options.verbose_loader) {
+//         printf("* Loading program of size %zu from %p to virtual %p\n", len,
+//                src, (void *) (uintptr_t) hdr->p_vaddr);
+//     }
+//     // Serialize pages cannot be called with len == 0,
+//     // and there is nothing further to do.
+//     if (unlikely(len == 0))
+//         return;
+
+//     // segment permissions
+//     const PageAttributes attr{.read = (hdr->p_flags & PF_R) != 0,
+//                               .write = (hdr->p_flags & PF_W) != 0,
+//                               .exec = (hdr->p_flags & PF_X) != 0};
+//     if (options.verbose_loader) {
+//         printf("* Program segment readable: %d writable: %d  executable:
+//         %d\n",
+//                attr.read, attr.write, attr.exec);
+//     }
+
+//     if (attr.exec && this->cached_execute_segments() == 0) {
+//         serialize_execute_segment(options, hdr);
+//         // Nothing more to do here, if execute-only
+//         if (!attr.read)
+//             return;
+//     }
+//     // We would normally never allow this
+//     if (attr.exec && attr.write) {
+//         if (!options.allow_write_exec_segment) {
+//             throw MachineException(INVALID_PROGRAM,
+//                                    "Insecure ELF has writable executable
+//                                    code");
+//         }
+//     }
+//     // In some cases we want to enforce execute-only
+//     if (attr.exec && (attr.read || attr.write)) {
+//         if (options.enforce_exec_only) {
+//             throw MachineException(INVALID_PROGRAM,
+//                                    "Execute segment must be execute-only");
+//         }
+//     }
+//     if (attr.write) {
+//         if (this->m_initial_rodata_end == RWREAD_BEGIN)
+//             this->m_initial_rodata_end = hdr->p_vaddr;
+//         else
+//             this->m_initial_rodata_end =
+//                 std::min(m_initial_rodata_end, hdr->p_vaddr);
+//     }
+
+//     // Load into virtual memory
+//     this->memcpy(hdr->p_vaddr, src, len);
+
+//     if (options.protect_segments) {
+//         this->set_page_attr(hdr->p_vaddr, len, attr);
+//     } else {
+//         // this might help execute simplistic barebones programs
+//         this->set_page_attr(hdr->p_vaddr, len,
+//                             {.read = true, .write = true, .exec = true});
+//     }
+// }
+
+bool validate_header(elf_t *e)
+{
+    if (e->hdr->e_ident[EI_MAG0] != 0x7F || e->hdr->e_ident[EI_MAG1] != 'E' ||
+        e->hdr->e_ident[EI_MAG2] != 'L' || e->hdr->e_ident[EI_MAG3] != 'F')
+        return false;
+    return e->hdr->e_ident[EI_CLASS] == ELFCLASS32;
+}
+
+static bool verify_elf(elf_t *e)
+{
+    /* check if the ELF program is too short */
+    if (sizeof(struct Elf32_Ehdr) > e->raw_size) {
+        release(e);
+        return false;
+    }
+
+    /* check if the ELF header is valid */
+    if (unlikely(!validate_header(e))) {
+        return false;
+    }
+
+    /* check if the ELF program is an executable type */
+    if (unlikely(e->hdr->e_type != ET_EXEC)) {
+        return false;
+    }
+
+    /* check if the ELF program is a RISC-V executable */
+    if (unlikely(e->hdr->e_machine != EM_RISCV)) {
+        return false;
+    }
+
+    /* check if program headers exist */
+    Elf32_Half program_headers = e->hdr->e_phnum;
+    if (unlikely(program_headers <= 0)) {
+        return false;
+    }
+
+    /* check if the total amount of program headers is less than 16 */
+    if (unlikely(program_headers >= 16)) {
+        return false;
+    }
+
+    /* check if the program headers have valid offset */
+    if (unlikely(e->hdr->e_phoff > 0x4000)) {
+        return false;
+    }
+
+    /* check if the program headers are within the binary */
+    if (unlikely(e->hdr->e_phoff + program_headers * sizeof(struct Elf32_Phdr) >
+                 e->raw_size)) {
+        return false;
+    }
+
+    /* Load program segments */
+    struct Elf32_Phdr *phdr =
+        (struct Elf32_Phdr *) (e->raw_data + e->hdr->e_phoff);
+    // int m_start_address = e->hdr->e_entry;
+    // int m_heap_address = 0;
+
+    for (struct Elf32_Phdr *hdr = phdr; hdr < phdr + program_headers; hdr++) {
+        /* Detect overlapping segments */
+        for (struct Elf32_Phdr *ph = phdr; ph < hdr; ph++) {
+            if (hdr->p_type == PT_LOAD && ph->p_type == PT_LOAD)
+                if (ph->p_vaddr < hdr->p_vaddr + hdr->p_filesz &&
+                    ph->p_vaddr + ph->p_filesz > hdr->p_vaddr) {
+                    /* normal ELF should not have overlapping segments */
+                    return false;
+                }
+        }
+
+        // switch (hdr->p_type) {
+        // case PT_LOAD:
+        //     // loadable program segments
+        //     if (options.load_program) {
+        //         binary_load_ph(options, hdr);
+        //     }
+        //     break;
+        // case PT_GNU_STACK:
+        //     // This seems to be a mark for executable stack. Big NO!
+        //     break;
+        // case PT_GNU_RELRO:
+        //     // throw std::runtime_error(
+        //     //	"Dynamically linked ELF binaries are not supported");
+        //     break;
+        // }
+
+        // Elf32_Word endm = hdr->p_vaddr + hdr->p_memsz;
+        // endm += Page::size() - 1;
+        // endm &= ~address_t(Page::size() - 1);
+        // if (this->m_heap_address < endm)
+        //     this->m_heap_address = endm;
+    }
+
+    return true;
+}
+
 /* A quick ELF briefer:
  *    +--------------------------------+
  *    | ELF Header                     |--+
@@ -261,6 +440,10 @@ bool elf_get_data_section_range(elf_t *e, uint32_t *start, uint32_t *end)
  */
 bool elf_load(elf_t *e, riscv_t *rv, memory_t *mem)
 {
+    if (!verify_elf(e)) {
+        return false;
+    }
+
     /* set the entry point */
     if (!rv_set_pc(rv, e->hdr->e_entry))
         return false;

@@ -1,0 +1,57 @@
+FROM ubuntu:22.04
+
+# https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user#_creating-a-nonroot-user
+# add a non-root user
+ARG USERNAME=sysprog21
+ARG USER_UID=1000
+ARG USER_GID=$USER_UID
+
+# Create the user
+RUN groupadd --gid $USER_GID $USERNAME && \
+    useradd --uid $USER_UID --gid $USER_GID -m $USERNAME && \
+    # Add sudo support
+    apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y sudo && \
+    echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
+    chmod 0440 /etc/sudoers.d/$USERNAME && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set the default user
+USER $USERNAME
+
+# Set the default directory
+WORKDIR /home/$USERNAME/
+
+# Install riscv-dv
+# https://github.com/chipsalliance/riscv-dv/blob/master/docs/source/getting_started.rst
+RUN sudo apt-get update && \
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+    git python3-pip && \
+    sudo rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/google/riscv-dv.git
+ENV PATH=/home/$USERNAME/.local/bin/:$PATH 
+RUN cd riscv-dv && pip3 install --user -e .
+
+# Set up riscv gcc toolchain
+RUN sudo apt-get update && \
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+    gcc-riscv64-unknown-elf && \
+    sudo rm -rf /var/lib/apt/lists/*
+ENV RISCV_TOOLCHAIN=/usr
+ENV RISCV_GCC="$RISCV_TOOLCHAIN/bin/riscv64-unknown-elf-gcc"
+ENV RISCV_OBJCOPY="$RISCV_TOOLCHAIN/bin/riscv64-unknown-elf-objcopy"
+
+# set up spike
+RUN git clone https://github.com/riscv-software-src/riscv-isa-sim.git
+RUN sudo apt-get update && \
+    DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+    device-tree-compiler && \
+    sudo rm -rf /var/lib/apt/lists/* && \
+    cd riscv-isa-sim && \
+    mkdir build && \
+    cd build && \
+    ../configure --prefix=$RISCV_TOOLCHAIN/bin && \
+    make && \
+    sudo make install
+ENV SPIKE_PATH=$RISCV_TOOLCHAIN/bin

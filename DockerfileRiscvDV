@@ -1,4 +1,23 @@
-FROM ubuntu:22.04
+FROM sysprog21/rv32emu-sail as base_sail
+
+# Compile rv32emu
+FROM ubuntu:22.04 as base_rv32emu
+ 
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    build-essential git curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy in the source code
+WORKDIR /home/root/rv32emu
+COPY . .
+
+# Generate execution file for rv32emu and rv_histogram
+RUN make ENABLE_SDL=0
+RUN make tool
+
+# Set up testing env
+FROM ubuntu:22.04 as final
 
 # https://code.visualstudio.com/remote/advancedcontainers/add-nonroot-user#_creating-a-nonroot-user
 # add a non-root user
@@ -19,6 +38,11 @@ RUN groupadd --gid $USER_GID $USERNAME && \
 # Set the default user
 USER $USERNAME
 
+############ All actions starts here ############
+
+# Copy rv32emu binary
+COPY --from=base_rv32emu /home/root/rv32emu/build/rv32emu /usr/local/bin/rv32emu
+
 # Set the default directory
 WORKDIR /home/$USERNAME/
 
@@ -30,8 +54,10 @@ RUN sudo apt-get update && \
     sudo rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/google/riscv-dv.git
-ENV PATH=/home/$USERNAME/.local/bin/:$PATH 
+ENV PATH=/home/$USERNAME/.local/bin:$PATH 
 RUN cd riscv-dv && pip3 install --user -e .
+# FIXME: run --test=riscv_rand_instr_test --iss=sail --simulator=pyflow --verbose
+RUN pip3 install pyvsc pandas tabulate
 
 # Set up riscv gcc toolchain
 RUN sudo apt-get update && \
@@ -42,16 +68,21 @@ ENV RISCV_TOOLCHAIN=/usr
 ENV RISCV_GCC="$RISCV_TOOLCHAIN/bin/riscv64-unknown-elf-gcc"
 ENV RISCV_OBJCOPY="$RISCV_TOOLCHAIN/bin/riscv64-unknown-elf-objcopy"
 
-# set up spike
-RUN git clone https://github.com/riscv-software-src/riscv-isa-sim.git
-RUN sudo apt-get update && \
-    DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
-    device-tree-compiler && \
-    sudo rm -rf /var/lib/apt/lists/* && \
-    cd riscv-isa-sim && \
-    mkdir build && \
-    cd build && \
-    ../configure --prefix=$RISCV_TOOLCHAIN/bin && \
-    make && \
-    sudo make install
-ENV SPIKE_PATH=$RISCV_TOOLCHAIN/bin
+# # Set up spike
+# # https://github.com/riscv-software-src/riscv-isa-sim
+# RUN git clone https://github.com/riscv-software-src/riscv-isa-sim.git
+# RUN sudo apt-get update && \
+#     DEBIAN_FRONTEND=noninteractive sudo apt-get install -y \
+#     device-tree-compiler && \
+#     sudo rm -rf /var/lib/apt/lists/* && \
+#     cd riscv-isa-sim && \
+#     mkdir build && \
+#     cd build && \
+#     ../configure --prefix=$RISCV_TOOLCHAIN/bin && \
+#     make && \
+#     sudo make install
+# ENV SPIKE_PATH=$RISCV_TOOLCHAIN/bin
+
+# Set up sail
+COPY --from=base_sail /home/root/riscv_sim_RV32 $RISCV_TOOLCHAIN/bin/riscv_sim_RV32
+ENV SAIL_RISCV=$RISCV_TOOLCHAIN/bin/riscv_sim_RV32

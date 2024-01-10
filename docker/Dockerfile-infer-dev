@@ -1,0 +1,5 @@
+FROM sysprog21/infer:06992cd
+
+# copy in the source code
+WORKDIR /home/root/rv32emu
+COPY . .

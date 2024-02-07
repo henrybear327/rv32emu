@@ -10,6 +10,7 @@ CONFIG_FILE := $(OUT)/.config
 CFLAGS = -std=gnu99 -O2 -Wall -Wextra
 CFLAGS += -Wno-unused-label
 CFLAGS += -include src/common.h
+CFLAGS += -include src/mpool_trc.h
 
 # Enable link-time optimization (LTO)
 ENABLE_LTO ?= 1
@@ -188,6 +189,7 @@ include mk/wasm.mk
 all: config $(BIN)
 
 OBJS := \
+	mpool_trc.o \
 	map.o \
 	utils.o \
 	decode.o \

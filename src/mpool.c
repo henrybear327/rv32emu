@@ -192,12 +192,17 @@ void mpool_free(mpool_t *mp, void *target)
     long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
                    (end.tv_nsec - start.tv_nsec);
 #if LOG_MPOOL
-    fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t);
+    fprintf(stderr, "f %p %d %ld\n", target, getpid(), total_t);
 #endif
 }
 
 void mpool_destroy(mpool_t *mp)
 {
+    // begin time
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
+
 #if HAVE_MMAP
     size_t mem_size = mp->page_count * getpagesize();
     area_t *cur = &mp->area, *tmp = NULL;
@@ -219,4 +224,15 @@ void mpool_destroy(mpool_t *mp)
     }
 #endif
     free(mp);
+
+    // end time
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
+
+    // write log to the buffer
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
+#if LOG_MPOOL
+    fprintf(stderr, "f %p %d %ld\n", mp, getpid(), total_t);
+#endif
 }

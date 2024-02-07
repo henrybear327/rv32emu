@@ -6,12 +6,12 @@
 
 /**
  * This is a hack.
- * 
+ *
  * In order to redirect the malloc, calloc, and free functions
- * calls to our proxy functions so we can add logging capability, 
- * we use define/undef extensively to workaround it. 
- * 
- * An attempt was made to use dlsym(RTLD_NEXT, "malloc"), but 
+ * calls to our proxy functions so we can add logging capability,
+ * we use define/undef extensively to workaround it.
+ *
+ * An attempt was made to use dlsym(RTLD_NEXT, "malloc"), but
  * the code always segfaulted.
  */
 

@@ -4,6 +4,8 @@
  */
 #pragma once
 
+#include <stdlib.h>
+
 /**
  * This is a hack.
  *
@@ -15,10 +17,6 @@
  * the code always segfaulted.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
-// forward declaration for define
 void *malloc_with_trace(size_t __size);
 void *calloc_with_trace(size_t __count, size_t __size);
 void free_with_trace(void *ptr);

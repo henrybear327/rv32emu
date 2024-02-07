@@ -2,8 +2,10 @@
  * rv32emu is freely redistributable under the MIT License. See the file
  * "LICENSE" for information on usage and redistribution of this file.
  */
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #if HAVE_MMAP
 #include <sys/mman.h>
 #include <unistd.h>
@@ -109,9 +111,22 @@ static void *mpool_extend(mpool_t *mp)
 
 FORCE_INLINE void *mpool_alloc_helper(mpool_t *mp)
 {
+    // begin time
+    clock_t start_t = clock();
+    
     char *ptr = (char *) mp->free_chunk_head + sizeof(memchunk_t);
     mp->free_chunk_head = mp->free_chunk_head->next;
     mp->chunk_count--;
+
+    // end time
+    clock_t end_t = clock();
+
+    // write log to the buffer
+    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
+    clock_t total_t = end_t - start_t;
+    fprintf(stderr, "a %zu %p %d %ld\n", mp->chunk_size, ptr, getpid(),
+            total_t);
+
     return ptr;
 }
 
@@ -124,19 +139,43 @@ void *mpool_alloc(mpool_t *mp)
 
 void *mpool_calloc(mpool_t *mp)
 {
+    // begin time
+    clock_t start_t = clock();
+
     if (!mp->chunk_count && !(mpool_extend(mp)))
         return NULL;
     char *ptr = mpool_alloc_helper(mp);
     memset(ptr, 0, mp->chunk_size);
+
+    // end time
+    clock_t end_t = clock();
+
+    // write log to the buffer
+    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
+    clock_t total_t = end_t - start_t;
+    fprintf(stderr, "a %zu %p %d %ld\n", mp->chunk_size, ptr, getpid(),
+            total_t);
+
     return ptr;
 }
 
 void mpool_free(mpool_t *mp, void *target)
 {
+    // begin time
+    clock_t start_t = clock();
+
     memchunk_t *ptr = (memchunk_t *) ((char *) target - sizeof(memchunk_t));
     ptr->next = mp->free_chunk_head;
     mp->free_chunk_head = ptr;
     mp->chunk_count++;
+
+    // end time
+    clock_t end_t = clock();
+
+    // write log to the buffer
+    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
+    clock_t total_t = end_t - start_t;
+    fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t);
 }
 
 void mpool_destroy(mpool_t *mp)

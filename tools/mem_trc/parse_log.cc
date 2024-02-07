@@ -21,7 +21,6 @@ constexpr const char *allocator_name = "baseline";
 
 // Typedefs
 using Nanoseconds = std::chrono::nanoseconds;
-using Microseconds = std::chrono::microseconds;
 
 enum MemoryOp { Alloc, Free };
 
@@ -40,8 +39,8 @@ struct MemoryEntry {
         -1;  // help MemoryOp::Free point back to source MemoryOp::Alloc
 
     // Output
-    Microseconds allocTime = Microseconds{0};
-    Microseconds freeTime = Microseconds{0};
+    Nanoseconds allocTime = Nanoseconds{0};
+    Nanoseconds freeTime = Nanoseconds{0};
 
     static std::vector<MemoryEntry> ParseJournal(const char *filepath);
 };
@@ -50,18 +49,6 @@ struct MemoryEntry {
 // ----------------------------------------------------------------------------------
 // Utility implementations
 // ----------------------------------------------------------------------------------
-std::string formatTime(Microseconds ns)
-{
-    auto count = ns.count();
-    if (count < 1000) {
-        return std::format("{:.2f} microseconds", (double) count);
-    } else if (count < 1000 * 1000) {
-        return std::format("{:.2f} milliseconds", (double) count / 1000);
-    } else {
-        return std::format("{:.2f} seconds", (double) count / 1000 / 1000);
-    }
-}
-
 std::string formatTime(Nanoseconds ns)
 {
     auto count = ns.count();
@@ -138,9 +125,9 @@ std::vector<MemoryEntry> MemoryEntry::ParseJournal(const char *filepath)
 
         // Parse timepoint
         if (entry.op == MemoryOp::Alloc) {
-            entry.allocTime = Microseconds{strtoull(begin, &end, 10)};
+            entry.allocTime = Nanoseconds{strtoull(begin, &end, 10)};
         } else {
-            entry.freeTime = Microseconds{strtoull(begin, &end, 10)};
+            entry.freeTime = Nanoseconds{strtoull(begin, &end, 10)};
         }
 
         // if (entry.op == MemoryOp::Alloc) {
@@ -164,14 +151,14 @@ int main()
     /* Print stats */
 
     // Compute data for results
-    std::vector<Microseconds> allocTimes;
+    std::vector<Nanoseconds> allocTimes;
     for (auto const &entry : journal) {
         if (entry.op == MemoryOp::Alloc) {
             allocTimes.push_back(entry.allocTime);
         }
     }
 
-    std::vector<Microseconds> freeTimes;
+    std::vector<Nanoseconds> freeTimes;
     for (auto const &entry : journal) {
         if (entry.op == MemoryOp::Free) {
             freeTimes.push_back(entry.freeTime);
@@ -197,7 +184,7 @@ int main()
     std::nth_element(allocSizes.begin(), medianIter, allocSizes.end());
     size_t medianAllocSize = *medianIter;
 
-    Microseconds totalMallocTimeNs{0};
+    Nanoseconds totalMallocTimeNs{0};
     for (auto const &allocTime : allocTimes) {
         totalMallocTimeNs += allocTime;
     }
@@ -210,7 +197,7 @@ int main()
     std::cout << "Average Malloc Time:  "
               << formatTime(Nanoseconds{
                      (long long int) ((double) totalMallocTimeNs.count() /
-                                      mallocCount * 1000)})
+                                      mallocCount)})
               << std::endl;
     std::cout << std::endl;
 

@@ -1,4 +1,5 @@
 #include "mpool_trc.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -11,7 +12,9 @@ void *malloc_with_trace(size_t __size)
     // fprintf(stderr, "malloc_with_trace()\n");
 
     // begin time
-    clock_t start_t = clock();
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
 
 // use original malloc
 #undef malloc
@@ -19,11 +22,12 @@ void *malloc_with_trace(size_t __size)
 #define malloc malloc_with_trace
 
     // end time
-    clock_t end_t = clock();
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
 
     // write log to the buffer
-    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
-    clock_t total_t = end_t - start_t;
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
 #if LOG_MALLOC
     fprintf(stderr, "a %zu %p %d %ld\n", __size, ptr, getpid(), total_t);
 #endif
@@ -36,7 +40,9 @@ void *calloc_with_trace(size_t __count, size_t __size)
     // fprintf(stderr, "calloc_with_trace()\n");
 
     // begin time
-    clock_t start_t = clock();
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
 
 // use original calloc
 #undef calloc
@@ -44,11 +50,12 @@ void *calloc_with_trace(size_t __count, size_t __size)
 #define calloc calloc_with_trace
 
     // end time
-    clock_t end_t = clock();
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
 
     // write log to the buffer
-    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
-    clock_t total_t = end_t - start_t;
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
 #if LOG_MALLOC
     fprintf(stderr, "a %zu %p %d %ld\n", __size, ptr, getpid(), total_t);
 #endif
@@ -102,7 +109,9 @@ void free_with_trace(void *ptr)
     }
 
     // begin time
-    clock_t start_t = clock();
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
 
 // use original free
 #undef free
@@ -110,11 +119,12 @@ void free_with_trace(void *ptr)
 #define free free_with_trace
 
     // end time
-    clock_t end_t = clock();
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
 
     // write log to the buffer
-    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
-    clock_t total_t = end_t - start_t;
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
 #if LOG_MALLOC
     fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t);
 #endif

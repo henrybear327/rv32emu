@@ -2,6 +2,7 @@
  * rv32emu is freely redistributable under the MIT License. See the file
  * "LICENSE" for information on usage and redistribution of this file.
  */
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -114,7 +115,9 @@ static void *mpool_extend(mpool_t *mp)
 void *mpool_alloc(mpool_t *mp)
 {
     // begin time
-    clock_t start_t = clock();
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
 
     if (!mp->chunk_count && !(mpool_extend(mp)))
         return NULL;
@@ -124,11 +127,12 @@ void *mpool_alloc(mpool_t *mp)
     mp->chunk_count--;
 
     // end time
-    clock_t end_t = clock();
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
 
     // write log to the buffer
-    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
-    clock_t total_t = end_t - start_t;
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
 #if LOG_MPOOL
     fprintf(stderr, "a %zu %p %d %ld\n", mp->chunk_size, ptr, getpid(),
             total_t);
@@ -140,7 +144,9 @@ void *mpool_alloc(mpool_t *mp)
 void *mpool_calloc(mpool_t *mp)
 {
     // begin time
-    clock_t start_t = clock();
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
 
     if (!mp->chunk_count && !(mpool_extend(mp)))
         return NULL;
@@ -151,11 +157,12 @@ void *mpool_calloc(mpool_t *mp)
     memset(ptr, 0, mp->chunk_size);
 
     // end time
-    clock_t end_t = clock();
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
 
     // write log to the buffer
-    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
-    clock_t total_t = end_t - start_t;
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
 #if LOG_MPOOL
     fprintf(stderr, "a %zu %p %d %ld\n", mp->chunk_size, ptr, getpid(),
             total_t);
@@ -167,7 +174,9 @@ void *mpool_calloc(mpool_t *mp)
 void mpool_free(mpool_t *mp, void *target)
 {
     // begin time
-    clock_t start_t = clock();
+    struct timespec start, end;
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    assert(err == 0);
 
     memchunk_t *ptr = (memchunk_t *) ((char *) target - sizeof(memchunk_t));
     ptr->next = mp->free_chunk_head;
@@ -175,11 +184,12 @@ void mpool_free(mpool_t *mp, void *target)
     mp->chunk_count++;
 
     // end time
-    clock_t end_t = clock();
+    err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
+    assert(err == 0);
 
     // write log to the buffer
-    // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
-    clock_t total_t = end_t - start_t;
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 +
+                   (end.tv_nsec - start.tv_nsec);
 #if LOG_MPOOL
     fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t);
 #endif

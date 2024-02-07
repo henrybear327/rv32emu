@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mpool_trc.h"
 
 #if RV32_HAS(EXT_F)
 #include <math.h>
@@ -20,7 +21,6 @@ extern struct target_ops gdbstub_ops;
 #endif
 
 #include "decode.h"
-#include "mpool.h"
 #include "riscv.h"
 #include "riscv_private.h"
 #include "utils.h"

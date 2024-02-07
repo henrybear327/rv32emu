@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mpool_trc.h"
 
 #if !defined(_WIN32) && !defined(_WIN64)
 #include <unistd.h>
@@ -19,7 +20,6 @@
 #endif
 
 #include "elf.h"
-#include "mpool.h"
 #include "riscv.h"
 #include "riscv_private.h"
 #include "utils.h"

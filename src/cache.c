@@ -9,9 +9,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mpool_trc.h"
 
 #include "cache.h"
-#include "mpool.h"
 #include "utils.h"
 
 static uint32_t cache_size, cache_size_bits;

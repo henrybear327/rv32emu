@@ -4,6 +4,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#define LOG_MALLOC 1
+
 void *malloc_with_trace(size_t __size)
 {
     // fprintf(stderr, "malloc_with_trace()\n");
@@ -22,7 +24,9 @@ void *malloc_with_trace(size_t __size)
     // write log to the buffer
     // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
     clock_t total_t = end_t - start_t;
+#if LOG_MALLOC
     fprintf(stderr, "a %zu %p %d %ld\n", __size, ptr, getpid(), total_t);
+#endif
 
     return ptr;
 }
@@ -45,7 +49,9 @@ void *calloc_with_trace(size_t __count, size_t __size)
     // write log to the buffer
     // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
     clock_t total_t = end_t - start_t;
+#if LOG_MALLOC
     fprintf(stderr, "a %zu %p %d %ld\n", __size, ptr, getpid(), total_t);
+#endif
 
     return ptr;
 }
@@ -84,11 +90,14 @@ void free_with_trace(void *ptr)
     // if the ptr is NULL, there is nothing to free
     if (ptr == NULL) {
         /**
-         * Potentially called from 
+         * Potentially called from
          * - block_map_clear (rv=0xaaaae256f2c0) at src/riscv.c:58
+         *
+         * Need to change the Makefile
+         * CFLAGS = -std=gnu99 -O2 -Wall -Wextra -> -g
          */
         // print_trace();
-        
+
         return;
     }
 
@@ -106,5 +115,7 @@ void free_with_trace(void *ptr)
     // write log to the buffer
     // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
     clock_t total_t = end_t - start_t;
+#if LOG_MALLOC
     fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t);
+#endif
 }

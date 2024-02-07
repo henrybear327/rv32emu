@@ -13,6 +13,8 @@
 
 #include "mpool.h"
 
+#define LOG_MPOOL 1
+
 typedef struct memchunk {
     struct memchunk *next;
 } memchunk_t;
@@ -124,8 +126,10 @@ FORCE_INLINE void *mpool_alloc_helper(mpool_t *mp)
     // write log to the buffer
     // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
     clock_t total_t = end_t - start_t;
+#if LOG_MPOOL
     fprintf(stderr, "a %zu %p %d %ld\n", mp->chunk_size, ptr, getpid(),
             total_t);
+#endif
 
     return ptr;
 }
@@ -153,8 +157,10 @@ void *mpool_calloc(mpool_t *mp)
     // write log to the buffer
     // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
     clock_t total_t = end_t - start_t;
+#if LOG_MPOOL
     fprintf(stderr, "a %zu %p %d %ld\n", mp->chunk_size, ptr, getpid(),
             total_t);
+#endif
 
     return ptr;
 }
@@ -175,7 +181,9 @@ void mpool_free(mpool_t *mp, void *target)
     // write log to the buffer
     // double total_t = (double) (end_t - start_t) / CLOCKS_PER_SEC;
     clock_t total_t = end_t - start_t;
+#if LOG_MPOOL
     fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t);
+#endif
 }
 
 void mpool_destroy(mpool_t *mp)

@@ -20,7 +20,7 @@ extern struct target_ops gdbstub_ops;
 #endif
 
 #include "decode.h"
-#include "mpool.h"
+#include "mpool_trc.h"
 #include "riscv.h"
 #include "riscv_private.h"
 #include "utils.h"

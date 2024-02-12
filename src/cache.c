@@ -11,7 +11,7 @@
 #include <string.h>
 
 #include "cache.h"
-#include "mpool.h"
+#include "mpool_trc.h"
 #include "utils.h"
 
 static uint32_t cache_size, cache_size_bits;

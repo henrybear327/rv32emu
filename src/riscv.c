@@ -19,7 +19,7 @@
 #endif
 
 #include "elf.h"
-#include "mpool.h"
+#include "mpool_trc.h"
 #include "riscv.h"
 #include "riscv_private.h"
 #include "utils.h"

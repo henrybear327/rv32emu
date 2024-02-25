@@ -113,6 +113,23 @@ jobs:
             .ci/check-format.sh
       shell: bash
   
+  clang-static-analysis:
+    needs: [detect-code-related-file-changes]
+    if: needs.detect-code-related-file-changes.outputs.has_code_related_changes == 'true'
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: clang 
+      run: |
+            apt-get update -q -y
+            apt-get install -q -y clang clang-tools libsdl2-dev libsdl2-mixer-dev
+            scan-build -v --use-cc=clang --force-analyze-debug-code --show-description -analyzer-config stable-report-filename=true -enable-checker valist,nullability --status-bugs make ENABLE_JIT=1
+      with:
+        name: scan-build
+        path: scan-build
+        retention-days: 5
+      shell: bash
+  
   compliance-test:
     needs: [detect-code-related-file-changes]
     if: needs.detect-code-related-file-changes.outputs.has_code_related_changes == 'true'

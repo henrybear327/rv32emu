@@ -205,6 +205,7 @@ int main(int argc, char **args)
     /* create the RISC-V runtime */
     riscv_t *rv = rv_create(&attr);
     if (!rv) {
+        free(attr.data.user);
         fprintf(stderr, "Unable to create riscv emulator\n");
         return 1;
     }
@@ -223,5 +224,7 @@ int main(int argc, char **args)
     rv_delete(rv);
 
     printf("inferior exit code %d\n", attr.exit_code);
+
+    free(attr.data.user);
     return 0;
 }

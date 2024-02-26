@@ -124,14 +124,6 @@ jobs:
       run: |
         echo "date=$(/bin/date -u "+%Y%m%d%H%M%S")" >> $GITHUB_OUTPUT
       shell: bash
-    - name: Cache scan-build
-      id: cache-scan-build
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-scan-build
-      with:
-        path: ~/scan-build
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ steps.get-date.outputs.date }}
     - name: set up scan-build  
       run: |
             sudo apt-get update -q -y
@@ -139,7 +131,14 @@ jobs:
       shell: bash
     - name: run scan-build
       run: scan-build -v -o ~/scan-build --use-cc=clang --force-analyze-debug-code --show-description -analyzer-config stable-report-filename=true -enable-checker valist,nullability make ENABLE_JIT=1
-     
+    - name: Archive scan-build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: scan-build-artifacts
+        retention-days: 5
+        path: |
+          ~/scan-build
+
   compliance-test:
     needs: [detect-code-related-file-changes]
     if: needs.detect-code-related-file-changes.outputs.has_code_related_changes == 'true'

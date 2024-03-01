@@ -151,6 +151,7 @@ $(OUT)/emulate.o: CFLAGS += -foptimize-sibling-calls -fomit-frame-pointer -fno-s
 all: config $(BIN)
 
 OBJS := \
+	tlsf.o \
 	map.o \
 	utils.o \
 	decode.o \
@@ -160,7 +161,7 @@ OBJS := \
 	riscv.o \
 	elf.o \
 	cache.o \
-	mpool.o \
+	mpool_tlsf.o \
 	$(OBJS_EXT) \
 	main.o
 

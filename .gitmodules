@@ -11,3 +11,6 @@
 	url = https://github.com/sysprog21/berkeley-softfloat-3
 	branch = rv32emu
 	shallow = true
+[submodule "src/tlsf"]
+	path = src/tlsf
+	url = https://github.com/minad/tlsf.git

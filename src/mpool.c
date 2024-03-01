@@ -10,6 +10,30 @@
 #endif
 
 #include "mpool.h"
+#include <time.h>
+#include <assert.h>
+#include <stdio.h>
+#include <unistd.h>
+
+#define TIMER_INIT struct timespec start, end
+#define TIMER_START(start) { \
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start); \
+    assert(err == 0); \
+}
+#define TIMER_END(end) { \
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end); \
+    assert(err == 0); \
+}
+#define TIMER_LOG_ALLOC(__size, ptr, start, end) { \
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 + \
+                   (end.tv_nsec - start.tv_nsec); \
+    fprintf(stderr, "a %zu %p %d %ld\n", __size, ptr, getpid(), total_t); \
+}
+#define TIMER_LOG_FREE(ptr, start, end) { \
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 + \
+                   (end.tv_nsec - start.tv_nsec); \
+    fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t); \
+}
 
 typedef struct memchunk {
     struct memchunk *next;
@@ -109,9 +133,13 @@ static void *mpool_extend(mpool_t *mp)
 
 FORCE_INLINE void *mpool_alloc_helper(mpool_t *mp)
 {
+    TIMER_INIT;
+    TIMER_START(start);
     char *ptr = (char *) mp->free_chunk_head + sizeof(memchunk_t);
     mp->free_chunk_head = mp->free_chunk_head->next;
     mp->chunk_count--;
+    TIMER_END(end);
+    TIMER_LOG_ALLOC(mp->chunk_size, ptr, start, end);
     return ptr;
 }
 
@@ -124,19 +152,30 @@ void *mpool_alloc(mpool_t *mp)
 
 void *mpool_calloc(mpool_t *mp)
 {
-    if (!mp->chunk_count && !(mpool_extend(mp)))
+    TIMER_INIT;
+    TIMER_START(start);
+    if (!mp->chunk_count && !(mpool_extend(mp))) {
+        TIMER_END(end);
+        TIMER_LOG_ALLOC(mp->chunk_size, NULL, start, end);
         return NULL;
+    }
     char *ptr = mpool_alloc_helper(mp);
     memset(ptr, 0, mp->chunk_size);
+    TIMER_END(end);
+    TIMER_LOG_ALLOC(mp->chunk_size, ptr, start, end);
     return ptr;
 }
 
 void mpool_free(mpool_t *mp, void *target)
 {
+    TIMER_INIT;
+    TIMER_START(start);
     memchunk_t *ptr = (memchunk_t *) ((char *) target - sizeof(memchunk_t));
     ptr->next = mp->free_chunk_head;
     mp->free_chunk_head = ptr;
     mp->chunk_count++;
+    TIMER_END(end);
+    TIMER_LOG_FREE(target, start, end);
 }
 
 void mpool_destroy(mpool_t *mp)

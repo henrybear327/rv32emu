@@ -1,12 +1,14 @@
 name: Benchmark
 
-on: [push, pull_request_target, workflow_dispatch]
+on:
+  pull_request:
+    branches: [ "master" ]
 
 jobs:
   benchmark:
     name: Performance regression check
     if: contains(toJSON(github.event.head_commit.message), 'Merge pull request ') == false
-    runs-on: ubuntu-22.04
+    runs-on: node11
     steps:
       - uses: actions/checkout@v4
       - name: Test changed files
@@ -20,30 +22,26 @@ jobs:
               src/rv32_template.c
               src/rv32_constopt.c
       - name: install-dependencies
-        if: ${{ steps.changed-files.outputs.any_changed == 'true' ||
-            github.event_name == 'workflow_dispatch'}}
+        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
         run: |
             sudo pip3 install numpy
         shell: bash
       - name: default build
-        if: ${{ steps.changed-files.outputs.any_changed == 'true' ||
-            github.event_name == 'workflow_dispatch'}}
+        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
         run: make
       - name: Run benchmark
-        if: ${{ steps.changed-files.outputs.any_changed == 'true' ||
-            github.event_name == 'workflow_dispatch'}}
+        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
         run: |
           tests/bench-aggregator.py
       - name: Store benchmark results
-        if: ${{ steps.changed-files.outputs.any_changed == 'true' ||
-            github.event_name == 'workflow_dispatch'}}
-        uses: benchmark-action/github-action-benchmark@v1
+        if: ${{ steps.changed-files.outputs.any_changed == 'true' }}
+        uses: benchmark-action/github-action-benchmark@v1.20.3
         with:
           name: Benchmarks
           tool: 'customBiggerIsBetter'
           output-file-path: benchmark_output.json
           github-token: ${{ secrets.RV32EMU_BENCH_TOKEN }}
-          gh-repository: 'github.com/sysprog21/rv32emu-bench'
+          gh-repository: 'github.com/henrybear327/rv32emu-bench'
           gh-pages-branch: 'master'
           auto-push: true
           comment-always: true

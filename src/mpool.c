@@ -2,164 +2,87 @@
  * rv32emu is freely redistributable under the MIT License. See the file
  * "LICENSE" for information on usage and redistribution of this file.
  */
+#include "tlsf.h"
+#include "mpool.h"
 #include <stdlib.h>
 #include <string.h>
-#if HAVE_MMAP
-#include <sys/mman.h>
+#include <time.h>
+#include <assert.h>
+#include <stdio.h>
 #include <unistd.h>
-#endif
 
-#include "mpool.h"
+static tlsf t = TLSF_INIT;
 
-typedef struct memchunk {
-    struct memchunk *next;
-} memchunk_t;
-
-typedef struct area {
-    char *mapped;
-    struct area *next;
-} area_t;
+#define TIMER_INIT struct timespec start, end
+#define TIMER_START(start) { \
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start); \
+    assert(err == 0); \
+}
+#define TIMER_END(end) { \
+    int err = clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end); \
+    assert(err == 0); \
+}
+#define TIMER_LOG_ALLOC(__size, ptr, start, end) { \
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 + \
+                   (end.tv_nsec - start.tv_nsec); \
+    fprintf(stderr, "a %zu %p %d %ld\n", __size, ptr, getpid(), total_t); \
+}
+#define TIMER_LOG_FREE(ptr, start, end) { \
+    long total_t = (end.tv_sec - start.tv_sec) * 1000000000 + \
+                   (end.tv_nsec - start.tv_nsec); \
+    fprintf(stderr, "f %p %d %ld\n", ptr, getpid(), total_t); \
+}
 
 typedef struct mpool {
-    size_t chunk_count;
-    size_t page_count;
     size_t chunk_size;
-    struct memchunk *free_chunk_head;
-    area_t area;
 } mpool_t;
-
-static void *mem_arena(size_t sz)
-{
-    void *p;
-#if HAVE_MMAP
-    p = mmap(0, sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
-    if (p == MAP_FAILED)
-        return NULL;
-#else
-    p = malloc(sz);
-    if (!p)
-        return NULL;
-#endif
-    return p;
-}
 
 mpool_t *mpool_create(size_t pool_size, size_t chunk_size)
 {
+    // TODO(henrybear327): remove unused variable pool_size
     mpool_t *new_mp = malloc(sizeof(mpool_t));
     if (!new_mp)
         return NULL;
 
-    new_mp->area.next = NULL;
-    size_t pgsz = getpagesize();
-    if (pool_size < chunk_size + sizeof(memchunk_t))
-        pool_size += sizeof(memchunk_t);
-    size_t page_count = (pool_size + pgsz - 1) / pgsz;
-    char *p = mem_arena(page_count * pgsz);
-    if (!p) {
-        free(new_mp);
-        return NULL;
-    }
-
-    new_mp->area.mapped = p;
-    new_mp->page_count = page_count;
-    new_mp->chunk_count = pool_size / (sizeof(memchunk_t) + chunk_size);
     new_mp->chunk_size = chunk_size;
-    new_mp->free_chunk_head = (memchunk_t *) p;
-    memchunk_t *cur = new_mp->free_chunk_head;
-    for (size_t i = 0; i < new_mp->chunk_count - 1; i++) {
-        cur->next =
-            (memchunk_t *) ((char *) cur + (sizeof(memchunk_t) + chunk_size));
-        cur = cur->next;
-    }
-    cur->next = NULL;
+
     return new_mp;
-}
-
-static void *mpool_extend(mpool_t *mp)
-{
-    size_t pool_size = mp->page_count * getpagesize();
-    char *p = mem_arena(pool_size);
-    if (!p)
-        return NULL;
-
-    area_t *new_area = malloc(sizeof(area_t));
-    if (!new_area)
-        return NULL;
-
-    new_area->mapped = p;
-    new_area->next = NULL;
-    size_t chunk_count = pool_size / (sizeof(memchunk_t) + mp->chunk_size);
-    mp->free_chunk_head = (memchunk_t *) p;
-    memchunk_t *cur = mp->free_chunk_head;
-    for (size_t i = 0; i < chunk_count - 1; i++) {
-        cur->next = (memchunk_t *) ((char *) cur +
-                                    (sizeof(memchunk_t) + mp->chunk_size));
-        cur = cur->next;
-    }
-    mp->chunk_count += chunk_count;
-
-    /* insert new mapped */
-    area_t *cur_area = &mp->area;
-    while (cur_area->next)
-        cur_area = cur_area->next;
-    cur_area->next = new_area;
-
-    return p;
-}
-
-FORCE_INLINE void *mpool_alloc_helper(mpool_t *mp)
-{
-    char *ptr = (char *) mp->free_chunk_head + sizeof(memchunk_t);
-    mp->free_chunk_head = mp->free_chunk_head->next;
-    mp->chunk_count--;
-    return ptr;
 }
 
 void *mpool_alloc(mpool_t *mp)
 {
-    if (!mp->chunk_count && !(mpool_extend(mp)))
-        return NULL;
-    return mpool_alloc_helper(mp);
+    TIMER_INIT;
+    TIMER_START(start);
+    void* ptr = tlsf_malloc(&t, mp->chunk_size);
+    TIMER_END(end);
+    TIMER_LOG_ALLOC(mp->chunk_size, ptr, start, end);
+    return ptr;
 }
 
 void *mpool_calloc(mpool_t *mp)
 {
-    if (!mp->chunk_count && !(mpool_extend(mp)))
-        return NULL;
-    char *ptr = mpool_alloc_helper(mp);
-    memset(ptr, 0, mp->chunk_size);
+    TIMER_INIT;
+    TIMER_START(start);
+    void* ptr = tlsf_malloc(&t, mp->chunk_size);
+    TIMER_END(end);
+    TIMER_LOG_ALLOC(mp->chunk_size, ptr, start, end);
+    memset(ptr, 0, sizeof(mp->chunk_size));
     return ptr;
 }
 
 void mpool_free(mpool_t *mp, void *target)
 {
-    memchunk_t *ptr = (memchunk_t *) ((char *) target - sizeof(memchunk_t));
-    ptr->next = mp->free_chunk_head;
-    mp->free_chunk_head = ptr;
-    mp->chunk_count++;
+    // TODO(henrybear327): remove unused variable mp
+    TIMER_INIT;
+    TIMER_START(start);
+    tlsf_free(&t, target);
+    TIMER_END(end);
+    TIMER_LOG_FREE(target, start, end);
 }
 
+// TODO(henrybear327): remove unused function mpool_destroy
 void mpool_destroy(mpool_t *mp)
 {
-#if HAVE_MMAP
-    size_t mem_size = mp->page_count * getpagesize();
-    area_t *cur = &mp->area, *tmp = NULL;
-    while (cur) {
-        tmp = cur;
-        cur = cur->next;
-        munmap(tmp->mapped, mem_size);
-        if (tmp != &mp->area)
-            free(tmp);
-    }
-#else
-    area_t *cur = &mp->area, *tmp = NULL;
-    while (cur) {
-        tmp = cur;
-        cur = cur->next;
-        free(tmp->mapped);
-        if (tmp != &mp->area)
-            free(tmp);
-    }
-#endif
-    free(mp);
+    // no-op
+    return;
 }

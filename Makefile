@@ -188,6 +188,7 @@ include mk/wasm.mk
 all: config $(BIN)
 
 OBJS := \
+	tlsf.o \
 	map.o \
 	utils.o \
 	decode.o \

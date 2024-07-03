@@ -15,12 +15,12 @@ function run {
 
 function elf_name {
 	# execute baseline
-	git checkout mem_alloc/mpool_baseline
+	git checkout tlsf/fl_sl_baseline
 	make clean; make ENABLE_JIT=1
 	run 50 $1 "baseline"
 
 	# execute single TLSF
-	git checkout mem_alloc/mpool_replacement_single
+	git checkout tlsf/fl_sl_minad
 	make clean; make ENABLE_JIT=1
 	run 50 $1 "single_tlsf"
 }

@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e -u -o pipefail
 
 # compile log parser
-g++ -Wall -Wextra -Wshadow --std=c++20 -O2 tools/mem_trc/parse_log.cc -o parse_log
+g++ -Wall -Wextra -Wshadow --std=c++20 -O2 tools/parse_mem_trace.cc -o parse_log
 
 function run {
-	mkdir log
+	mkdir -p log
 
 	for ((i=1; i<=$1; i++))
 	do

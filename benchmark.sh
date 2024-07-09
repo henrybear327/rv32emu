@@ -20,10 +20,10 @@ function elf_name {
 	make clean; make ENABLE_JIT=1
 	run 50 $1 "baseline"
 
-	# execute single TLSF
+	# execute minad TLSF
 	git checkout tlsf/fl_sl_minad
 	make clean; make ENABLE_JIT=1
-	run 50 $1 "single_tlsf"
+	run 50 $1 "minad_tlsf"
 }
 
 elf_name "hello"

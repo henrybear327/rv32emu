@@ -3,6 +3,8 @@
  * "LICENSE" for information on usage and redistribution of this file.
  */
 
+/* Force the CI to run */
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

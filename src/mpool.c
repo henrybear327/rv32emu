@@ -6,8 +6,8 @@
 #include <string.h>
 #if HAVE_MMAP
 #include <sys/mman.h>
-#include <unistd.h>
 #endif
+#include <unistd.h>
 
 #include "mpool.h"
 

@@ -201,7 +201,7 @@ static inline uint8_t ilog2(uint32_t x)
 #define HAVE_MMAP 0
 #else
 /* Assume POSIX-compatible runtime */
-#define HAVE_MMAP 1
+#define HAVE_MMAP 0
 #endif
 
 /* Pattern Matching for C macros.

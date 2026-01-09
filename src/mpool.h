@@ -13,8 +13,21 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdint.h>
 
 struct mpool;
+
+/* Statistics structure for benchmarking */
+typedef struct mpool_stats {
+    /* Operation counts */
+    size_t alloc_count;
+    size_t free_count;
+    size_t extend_count;
+    /* Cumulative time in nanoseconds */
+    uint64_t alloc_time_ns;
+    uint64_t free_time_ns;
+    uint64_t extend_time_ns;
+} mpool_stats_t;
 
 /**
  * mpool_create - create a memory pool
@@ -53,3 +66,10 @@ void mpool_free(struct mpool *mp, void *target);
  * @mp: memory pool (NULL-safe)
  */
 void mpool_destroy(struct mpool *mp);
+
+/**
+ * mpool_get_stats - get pool statistics
+ * @mp: memory pool (NULL-safe)
+ * @stats: output statistics structure (NULL-safe)
+ */
+void mpool_get_stats(struct mpool *mp, mpool_stats_t *stats);

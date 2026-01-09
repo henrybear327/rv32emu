@@ -47,6 +47,17 @@
 
 #define BLOCK_IR_MAP_CAPACITY_BITS 10
 
+static void print_mpool_stats(const char *name, struct mpool *mp)
+{
+    mpool_stats_t stats;
+    mpool_get_stats(mp, &stats);
+    fprintf(stderr,
+            "mpool[%s]: alloc=%zu(%.3fms) free=%zu(%.3fms) extend=%zu(%.3fms)\n",
+            name, stats.alloc_count, stats.alloc_time_ns / 1e6, stats.free_count,
+            stats.free_time_ns / 1e6, stats.extend_count,
+            stats.extend_time_ns / 1e6);
+}
+
 #if !RV32_HAS(JIT)
 /* initialize the block map */
 static void block_map_init(block_map_t *map, const uint8_t bits)
@@ -86,6 +97,10 @@ static void block_map_destroy(riscv_t *rv)
 {
     block_map_clear(rv);
     free(rv->block_map.map);
+
+    print_mpool_stats("block", rv->block_mp);
+    print_mpool_stats("block_ir", rv->block_ir_mp);
+    print_mpool_stats("fuse", rv->fuse_mp);
 
     mpool_destroy(rv->block_mp);
     mpool_destroy(rv->block_ir_mp);
@@ -1074,6 +1089,9 @@ void rv_delete(riscv_t *rv)
 #endif
     jit_state_exit(rv->jit_state);
     cache_free(rv->block_cache);
+    print_mpool_stats("block", rv->block_mp);
+    print_mpool_stats("block_ir", rv->block_ir_mp);
+    print_mpool_stats("fuse", rv->fuse_mp);
     mpool_destroy(rv->block_ir_mp);
     mpool_destroy(rv->block_mp);
     mpool_destroy(rv->fuse_mp);

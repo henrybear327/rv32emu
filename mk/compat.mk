@@ -70,6 +70,7 @@ $(eval $(call enable-to-config,T2C))
 # Performance options
 $(eval $(call enable-to-config,MOP_FUSION))
 $(eval $(call enable-to-config,BLOCK_CHAINING))
+$(eval $(call enable-to-config,TLSF))
 $(eval $(call enable-to-config,LTO))
 
 # Debugging

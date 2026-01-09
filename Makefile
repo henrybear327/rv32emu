@@ -56,11 +56,26 @@ OBJS_EXT :=
 deps :=
 
 # Feature Flags (Kconfig -> RV32_FEATURE_*)
-$(call set-features, ELF_LOADER MOP_FUSION BLOCK_CHAINING LOG_COLOR)
+$(call set-features, ELF_LOADER MOP_FUSION BLOCK_CHAINING TLSF LOG_COLOR)
 $(call set-features, SYSTEM GOLDFISH_RTC ARCH_TEST)
 $(call set-features, EXT_M EXT_A EXT_F EXT_C RV32E)
 $(call set-features, Zicsr Zifencei Zba Zbb Zbc Zbs)
 $(call set-features, SDL SDL_MIXER GDBSTUB JIT)
+
+# TLSF Memory Allocator
+ifeq ($(CONFIG_TLSF),y)
+src/tlsf/tlsf.h:
+	git submodule update --init src/tlsf
+CFLAGS += -Isrc/tlsf
+MPOOL_OBJ := mpool_tlsf.o tlsf.o
+$(OUT)/mpool_tlsf.o: src/tlsf/tlsf.h
+$(OUT)/tlsf.o: src/tlsf/tlsf.c src/tlsf/tlsf.h
+	$(Q)mkdir -p $(dir $@)
+	$(VECHO) "  CC\t$@\n"
+	$(Q)$(CC) -o $@ $(CFLAGS) -c -MMD -MF $@.d $<
+else
+MPOOL_OBJ := mpool.o
+endif
 
 # Extension: Floating Point
 ifeq ($(CONFIG_EXT_F),y)
@@ -201,7 +216,7 @@ OBJS := map.o utils.o decode.o io.o syscall.o
 ifeq ($(CC_IS_EMCC), 1)
 OBJS += em_runtime.o
 endif
-OBJS += emulate.o riscv.o log.o elf.o cache.o mpool.o $(OBJS_EXT) main.o
+OBJS += emulate.o riscv.o log.o elf.o cache.o $(MPOOL_OBJ) $(OBJS_EXT) main.o
 OBJS := $(addprefix $(OUT)/, $(OBJS))
 deps += $(OBJS:%.o=%.o.d)
 

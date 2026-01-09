@@ -134,6 +134,11 @@
 #define RV32_FEATURE_BLOCK_CHAINING 1
 #endif
 
+/* TLSF Memory Allocator */
+#ifndef RV32_FEATURE_TLSF
+#define RV32_FEATURE_TLSF 0
+#endif
+
 /* Logging with color */
 #ifndef RV32_FEATURE_LOG_COLOR
 #define RV32_FEATURE_LOG_COLOR 1

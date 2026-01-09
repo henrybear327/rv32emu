@@ -291,6 +291,16 @@ config BLOCK_CHAINING
 
       Improves JIT performance significantly.
 
+config TLSF
+    bool "Use TLSF Memory Allocator"
+    default n
+    help
+      Use TLSF (Two-Level Segregated Fit) memory allocator instead of
+      the default fixed-size memory pool. TLSF provides O(1) allocation
+      and deallocation with low fragmentation.
+
+      This is useful for benchmarking different memory allocation strategies.
+
 config LTO
     bool "Link-Time Optimization"
     default y

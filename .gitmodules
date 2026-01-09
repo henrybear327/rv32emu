@@ -34,3 +34,7 @@
 	path = src/dtc
 	url = https://github.com/dgibson/dtc
 	shallow = true
+[submodule "src/tlsf"]
+	path = src/tlsf
+	url = https://github.com/sysprog21/tlsf-bsd
+	shallow = true
